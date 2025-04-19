@@ -331,8 +331,14 @@ void setupEINT()
 void setupSerial()
 {
   // To replace later with bare-metal.
-  Serial.begin(9600);
+  //Serial.begin(9600);
   // Change Serial to Serial2/Serial3/Serial4 in later labs when using the other UARTs
+  //bare metal code
+  PRR0 &= ~(1 << PRUSART0);                    // Enable USART0
+  UBRR0H = 0;
+  UBRR0L = (unsigned char)103;                // Set baud rate to 9600 (16 MHz clock)
+  UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);     // 8 data bits, 1 stop bit, no parity
+  UCSR0A = 0;                                  // Clear status flags 
 }
 
 // Start the serial connection. For now we are using
@@ -358,9 +364,11 @@ int readSerial(char *buffer)
 
   // Change Serial to Serial2/Serial3/Serial4 in later labs when using other UARTs
 
-  while(Serial.available())
-    buffer[count++] = Serial.read();
-
+  //while(Serial.available())
+  while (UCSR0A & (1 << RXC0)) 
+  {
+    buffer[count++] = UDR0;
+  }
   return count;
 }
 
@@ -369,8 +377,13 @@ int readSerial(char *buffer)
 
 void writeSerial(const char *buffer, int len)
 {
-  Serial.write(buffer, len);
+  //Serial.write(buffer, len);
   // Change Serial to Serial2/Serial3/Serial4 in later labs when using other UARTs
+   for (int i = 0; i < len; i++) 
+   {
+     while (!(UCSR0A & (1 << UDRE0)));
+     UDR0 = buffer[i];
+   }
 }
 
 /*
