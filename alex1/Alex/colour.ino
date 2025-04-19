@@ -149,11 +149,11 @@ void readColour() {
   colour.command = RESP_COLOUR;
   
   // Read Red (S2 = LOW, S3 = LOW)
-  colour.params[0] = readFrequency(LOW, LOW);
+  colour.params[0] = readFrequency(0, 0);
   // Read Green (S2 = HIGH, S3 = HIGH)
-  colour.params[1] = readFrequency(HIGH, HIGH);
+  colour.params[1] = readFrequency(1, 1); 
   // Read Blue (S2 = LOW, S3 = HIGH)
-  colour.params[2] = readFrequency(LOW, HIGH);
+  colour.params[2] = readFrequency(0, 1);
   
 
   evaluateColour(colour.params[0], colour.params[1], colour.params[2], &colour);
