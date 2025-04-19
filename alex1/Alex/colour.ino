@@ -8,7 +8,7 @@
 #define S1 1  // PG1 (Digital Pin 38)
 #define S2 0  // PC0 (Digital Pin 37)
 #define S3 1  // PC1 (Digital Pin 36)
-#define sensorOut 2  // PC2 (Digital Pin 35)
+#define sensorOut 35  // PC2 (Digital Pin 35)
 
 // Structure to hold sensor readings and computed colour index.
 struct ColorResult {
@@ -57,7 +57,7 @@ long readFrequency(int s2State, int s3State)
     delayMicroseconds(1);
     if (duration > 60000) break;
   }
-  return duration;
+  return duration;  //return pulseIn(sensorOut, LOW);
 }
 
 
