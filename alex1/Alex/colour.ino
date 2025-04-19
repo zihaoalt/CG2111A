@@ -4,11 +4,11 @@
 #include "packet.h"       // Defines TPacket and PACKET_SIZE, MAX_STR_LEN, etc.
 #include "constants.h"    // Defines PACKET_TYPE_RESPONSE, RESP_COLOUR, etc.
 
-#define S0 39
-#define S1 38
-#define S2 37
-#define S3 36
-#define sensorOut 35
+#define S0 2  // PG2 (Digital Pin 39)
+#define S1 1  // PG1 (Digital Pin 38)
+#define S2 0  // PC0 (Digital Pin 37)
+#define S3 1  // PC1 (Digital Pin 36)
+#define sensorOut 2  // PC2 (Digital Pin 35)
 
 // Structure to hold sensor readings and computed colour index.
 struct ColorResult {
@@ -29,30 +29,64 @@ float calibratedColors[numColors][3] = {
 };
 
 // Reads the sensor frequency for a selected filter configuration.
-long readFrequency(int s2State, int s3State) {
+/*long readFrequency(int s2State, int s3State) {
   digitalWrite(S2, s2State);
   digitalWrite(S3, s3State);
   delay(50); // Allow the sensor to settle.
   return pulseIn(sensorOut, LOW);
+}*/
+
+long readFrequency(int s2State, int s3State) 
+{
+  if (s2State)
+    PORTC |= (1 << S2); // set PC0 high
+  else
+    PORTC &= ~(1 << S2); // set PC0 low
+
+  if (s3State)
+    PORTC |= (1 << S3); // set PC1 high
+  else
+    PORTC &= ~(1 << S3); // set PC1 low
+
+  delay(50);    // Allow filter settling
+
+  long duration = 0;
+  while (PINC & (1 << sensorOut));         // Wait for LOW pulse
+  while (!(PINC & (1 << sensorOut))) {
+    duration++;
+    delayMicroseconds(1);
+    if (duration > 60000) break;
+  }
+  return duration;
 }
+
 
 const float THRESHOLD = 200; 
 
 void setupColour() {
   // Set sensor control pins as outputs; sensorOut as input.
-  pinMode(S0, OUTPUT);
+  /*pinMode(S0, OUTPUT);
   pinMode(S1, OUTPUT);
   pinMode(S2, OUTPUT);
   pinMode(S3, OUTPUT);
   pinMode(sensorOut, INPUT);
-  
+  */
+  DDRG |= 0b00000110;
+  DDRC |= 0b00000011;
+  DDRC &= 0b11111011; // (clears bit 2)
+  // Set frequency scaling: S0 = HIGH, S1 = LOW
+  PORTG |= (1 << S0);
+  PORTG &= ~(1 << S1);
+  delay(2000);  
   // Start Serial for debugging and communication.
-  Serial.begin(9600);
+  /*Serial.begin(9600);
   delay(2000); // Wait for Serial Monitor
+  */
   
   // Set frequency scaling mode.
-  digitalWrite(S0, HIGH);
+ /* digitalWrite(S0, HIGH);
   digitalWrite(S1, LOW);
+*/
   
   //Serial.println("Sensor ready for colour detection.");
 }
@@ -81,7 +115,7 @@ void evaluateColour(int r, int g, int b, TPacket *colour) {
     }
   }
   colour->params[3] = min_index;
-
+}
 
 
 /*
@@ -105,7 +139,7 @@ void evaluateColour(int r, int g, int b, TPacket *colour) {
   }
   colour->params[3] = bestIndex;
   */
-}
+
 
 // Reads all three channels and computes the closest match.
 void readColour() {
@@ -126,28 +160,4 @@ void readColour() {
   sendResponse(&colour);
 }
 
-//// Sends a TPacket over Serial (simulate sending to server).
-//void sendResponse(TPacket *packet) {
-//  char buffer[PACKET_SIZE];
-//  // For simplicity, store packetType in first byte and then the params array.
-//  buffer[0] = packet->packetType;
-//  memcpy(&buffer[1], packet->params, sizeof(packet->params));
-//  Serial.write(buffer, PACKET_SIZE);
-//}
 
-//// Creates a TPacket with colour sensor data and sends it.
-//void sendColourPacket() {
-//  ColorResult currentColor = readColor();
-//  
-//  TPacket colourPacket;
-//  colourPacket.packetType = PACKET_TYPE_RESPONSE;  // Generic response packet.
-//  colourPacket.command = RESP_COLOUR;                // Indicates colour sensor data.
-//  
-//  // Fill parameters: params[0]=red, params[1]=green, params[2]=blue, params[3]=colour index.
-//  colourPacket.params[0] = currentColor.red;
-//  colourPacket.params[1] = currentColor.green;
-//  colourPacket.params[2] = currentColor.blue;
-//  colourPacket.params[3] = currentColor.colorIndex;
-//  
-//  sendResponse(&colourPacket);
-//}
